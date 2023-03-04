@@ -1,4 +1,5 @@
 import {useContext, useState} from 'react';
+import {View} from 'react-native';
 
 import {NativeRouter, Route, Routes} from 'react-router-native';
 import {BottomNavigation as NavScreens, Text} from 'react-native-paper';
@@ -9,6 +10,7 @@ import ChatsScreen from './chats';
 import RegisterScreen from './register';
 import LoginScreen from './login';
 import ChatScreen from './chat';
+import PeopleScreen from './people';
 
 const Screens = () => {
   const {isLoggedIn} = useContext(AuthContext);
@@ -19,7 +21,7 @@ const Screens = () => {
   const renderScene = NavScreens.SceneMap({
     chats: () => <ChatsScreen />,
     calls: () => <Text>Calls</Text>,
-    people: () => <Text>People</Text>,
+    people: () => <PeopleScreen />,
     stories: () => <Text>Stories</Text>,
   });
 
@@ -30,21 +32,26 @@ const Screens = () => {
           <Route
             path="/"
             element={
-              <NavScreens
-                navigationState={{index, routes}}
-                onIndexChange={setIndex}
-                renderScene={renderScene}
-              />
+              // TODO: refactor
+              <View style={{flex: 1, marginTop: 32}}>
+                <NavScreens
+                  navigationState={{index, routes}}
+                  onIndexChange={setIndex}
+                  renderScene={renderScene}
+                />
+              </View>
             }
           />
           <Route
             path="/login"
             element={
-              <NavScreens
-                navigationState={{index, routes}}
-                onIndexChange={setIndex}
-                renderScene={renderScene}
-              />
+              <View style={{flex: 1, marginTop: 32}}>
+                <NavScreens
+                  navigationState={{index, routes}}
+                  onIndexChange={setIndex}
+                  renderScene={renderScene}
+                />
+              </View>
             }
           />
           <Route path="/chat/:chatId" element={<ChatScreen />} />
