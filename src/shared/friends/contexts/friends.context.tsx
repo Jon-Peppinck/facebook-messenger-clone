@@ -91,8 +91,11 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
           if (userDetails?.id === id) return prevFriends;
 
           const updatedFriends = [...prevFriends];
-          (updatedFriends.find(f => f.id === id) as ActiveFriend).isActive =
-            isFriendActive;
+          const activeFriend = updatedFriends.find(f => f.id === id);
+
+          if (!activeFriend) return prevFriends;
+
+          activeFriend.isActive = isFriendActive;
 
           return updatedFriends;
         });
