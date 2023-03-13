@@ -54,7 +54,7 @@ const Screens = () => {
               </View>
             }
           />
-          <Route path="/chat/:chatId" element={<ChatScreen />} />
+          <Route path="/chat/:friendId" element={<ChatScreen />} />
         </Routes>
       ) : (
         <Routes>

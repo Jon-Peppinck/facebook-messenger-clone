@@ -1,7 +1,6 @@
-import {useContext, useEffect, useMemo, useState} from 'react';
-import {Platform, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useContext, useState} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 
-import SocketIOClient from 'socket.io-client';
 import {Appbar, Avatar, IconButton} from 'react-native-paper';
 import {useNavigate, useParams} from 'react-router-native';
 
@@ -13,68 +12,23 @@ import {
   COLOR_LIGHT_GRAY,
   COLOR_WHITE,
 } from '../../shared/constants/colors';
-import {Message} from './models/Message';
-import {Conversation} from './models/Conversation';
+import {FriendsContext} from '../../shared/friends/contexts/friends.context';
 
 const ChatScreen = () => {
-  const {jwt, userDetails} = useContext(AuthContext);
-  const {chatId} = useParams();
+  const {userDetails} = useContext(AuthContext);
+  const {messages, conversations, friend, sendMessage} =
+    useContext(FriendsContext);
+  const {friendId} = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-
-  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const conversationId = conversations.find(conversation =>
-    conversation.userIds.includes(+(chatId ?? -1)),
+    conversation.userIds.includes(+(friendId ?? -1)),
   )?.id;
 
   const conversationMessages = [...messages].filter(
     message => message.conversationId === conversationId,
   );
-
-  const conversationBaseUrl =
-    Platform.OS === 'android'
-      ? 'http://10.0.2.2:7000'
-      : 'http://localhost:7000';
-
-  const conversationSocket = useMemo(
-    () =>
-      SocketIOClient(conversationBaseUrl, {
-        transportOptions: {
-          polling: {
-            extraHeaders: {
-              Authorization: jwt,
-            },
-          },
-        },
-      }),
-    [jwt, conversationBaseUrl],
-  );
-
-  useEffect(() => {
-    if (conversations.length > 0) return;
-    // conversationSocket.emit('getConversations');
-    conversationSocket.on(
-      'getAllConversations',
-      (allConversations: Conversation[]) => {
-        setConversations(() => allConversations);
-      },
-    );
-    return () => {
-      conversationSocket.off('getAllConversations');
-    };
-  }, [conversationSocket, conversations]);
-
-  useEffect(() => {
-    conversationSocket.on('newMessage', (message: Message) => {
-      setMessages(prevMessages => [...prevMessages, message]);
-    });
-
-    return () => {
-      conversationSocket.off('newMessage');
-    };
-  }, [conversationSocket]);
 
   return (
     <View style={styles.container}>
@@ -84,13 +38,15 @@ const ChatScreen = () => {
         <Avatar.Image
           size={36}
           source={{
-            uri: `https://randomuser.me/api/portraits/men/${chatId}.jpg`,
+            uri: `https://randomuser.me/api/portraits/men/${friendId}.jpg`,
           }}
         />
 
         <View style={{marginLeft: 8}}>
-          <Text>Name</Text>
-          <Text>Active Now</Text>
+          <Text>
+            {friend.firstName} {friend.lastName}
+          </Text>
+          <Text>{friend.isActive ? 'Active Now' : 'Active 4 hours ago'}</Text>
         </View>
 
         <View
@@ -118,7 +74,6 @@ const ChatScreen = () => {
       </Appbar.Header>
 
       <ScrollView style={styles.chatContainer}>
-        <Text>Chat Id: {chatId}</Text>
         {conversationMessages.map((message, i) => (
           <View
             key={i}
@@ -140,6 +95,7 @@ const ChatScreen = () => {
             </Text>
           </View>
         ))}
+        <View style={{height: 16}} />
       </ScrollView>
 
       <View
@@ -164,21 +120,8 @@ const ChatScreen = () => {
           style={{margin: 0}}
           size={32}
           onPress={() => {
-            if (!userDetails || !text) return;
-
-            const newMessage: Message = {
-              message: text,
-              creatorId: userDetails.id,
-              conversationId,
-            };
-            setMessages(prevMessages => [...prevMessages, newMessage]);
-
-            conversationSocket.emit('sendMessage', {
-              message: text,
-              friendId: chatId,
-              conversationId,
-            });
-
+            if (!text || !conversationId) return;
+            sendMessage(text, conversationId);
             setText(() => '');
           }}
         />

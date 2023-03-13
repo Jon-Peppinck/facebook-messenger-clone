@@ -1,3 +1,4 @@
+import {useContext, useEffect} from 'react';
 import {View, Text, StyleSheet, Pressable} from 'react-native';
 
 import {useNavigate} from 'react-router-native';
@@ -6,18 +7,29 @@ import {Avatar} from 'react-native-paper';
 import {ActiveFriend} from '../models';
 import {COLOR_ONLINE_GREEN} from '../../constants/colors';
 
+import {FriendsContext} from '../contexts/friends.context';
+
 type Props = {
   friend: ActiveFriend;
   showMessage?: boolean;
 };
 
 const Friend = ({friend, showMessage = false}: Props) => {
+  const {setFriend} = useContext(FriendsContext);
   const navigate = useNavigate();
 
   const {id, firstName, lastName, isActive} = friend;
 
+  useEffect(() => {
+    setFriend(friend);
+  }, [friend, isActive, setFriend]);
+
   return (
-    <Pressable key={friend.id} onPress={() => navigate(`/chat/${id}`)}>
+    <Pressable
+      key={friend.id}
+      onPress={() => {
+        navigate(`/chat/${id}`);
+      }}>
       <View style={styles.friend}>
         <Avatar.Image
           size={72}

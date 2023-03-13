@@ -13,7 +13,7 @@ type Props = {
 };
 
 const Friends = ({showMessage = false}: Props) => {
-  const {onLogout} = useContext(AuthContext); // TEMP
+  const {onLogout} = useContext(AuthContext);
   const {friends, isLoading} = useContext(FriendsContext);
 
   if (isLoading) {
