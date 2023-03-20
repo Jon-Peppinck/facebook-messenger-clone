@@ -55,7 +55,7 @@ const ChatScreen = () => {
           <Text>
             {friend.firstName} {friend.lastName}
           </Text>
-          <Text>{friend.isActive ? 'Active Now' : 'Active 4 hours ago'}</Text>
+          <Text>{friend.isActive ? 'Active Now' : 'Active a moment ago'}</Text>
         </View>
 
         <View
