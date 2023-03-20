@@ -9,19 +9,27 @@ import {
 import {Platform} from 'react-native';
 
 import {useQuery} from 'react-query';
+import {useParams} from 'react-router-native';
 import SocketIOClient from 'socket.io-client';
 import PushNotification from 'react-native-push-notification';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import BackgroundTimer from 'react-native-background-timer';
 
+import {IP_ADDRESS} from '@env';
+
 import getFriends from '../helpers/friends';
 import {getFriendRequests} from '../../../screens/people/requests';
 import {AuthContext} from '../../auth/contexts/auth.context';
 import {UserDetails} from '../../auth/models';
-import {ActiveFriend} from '../models';
+import {
+  ActiveFriend,
+  CallActivity,
+  CallDetails,
+  CallResponse,
+  ICallResponse,
+} from '../models';
 import {Conversation} from '../../../screens/chat/models/Conversation';
 import {Message} from '../../../screens/chat/models/Message';
-import {useParams} from 'react-router-native';
 
 export interface IFriendsContext {
   friends: ActiveFriend[];
@@ -29,8 +37,14 @@ export interface IFriendsContext {
   isLoading: boolean;
   conversations: Conversation[];
   messages: Message[];
+  callDetails: CallDetails | null;
+  callActivity: CallActivity;
   sendMessage: (text: string, conversationId: number) => void;
   setFriend: (friend: ActiveFriend) => void;
+  setCallDetails: (callDetails: CallDetails | null) => void;
+  setCallActivity: (callActivity: CallActivity) => void;
+  startCall: (details: CallDetails) => void;
+  respondToCall: (response: CallResponse) => void;
 }
 
 export const FriendsContext = createContext<IFriendsContext>({
@@ -39,8 +53,14 @@ export const FriendsContext = createContext<IFriendsContext>({
   isLoading: false,
   conversations: [],
   messages: [],
+  callDetails: null,
+  callActivity: CallActivity.None,
   sendMessage: () => null,
   setFriend: () => null,
+  setCallDetails: () => null,
+  setCallActivity: () => null,
+  startCall: () => null,
+  respondToCall: () => null,
 });
 
 export const FriendsProvider = ({children}: {children: ReactNode}) => {
@@ -52,11 +72,12 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [callDetails, setCallDetails] = useState<CallDetails | null>(null);
+  const [callActivity, setCallActivity] = useState<CallActivity>(
+    CallActivity.None,
+  );
 
-  const chatBaseUrl =
-    Platform.OS === 'android'
-      ? 'http://10.0.2.2:7000'
-      : 'http://localhost:7000';
+  const chatBaseUrl = `http://${IP_ADDRESS ?? '10.0.2.2'}:7000`;
 
   const chatSocket = useMemo(
     () =>
@@ -83,6 +104,10 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
       chatSocket.off('getAllConversations');
     };
   }, [chatSocket, conversations]);
+
+  const startCall = (details: CallDetails) => {
+    chatSocket.emit('startCall', details);
+  };
 
   useEffect(() => {
     chatSocket.on('newMessage', (message: Message) => {
@@ -111,10 +136,25 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
       }
     });
 
+    chatSocket.on('receiveCall', (friendsCallDetails: CallDetails) => {
+      setCallDetails(friendsCallDetails);
+      setCallActivity(CallActivity.Receiving);
+    });
+
+    chatSocket.on('callResponse', (callResponse: ICallResponse) => {
+      const hasFriendAccepted = callResponse.status === CallResponse.Accepted;
+
+      setCallActivity(
+        hasFriendAccepted ? CallActivity.Accepted : CallActivity.None,
+      );
+    });
+
     return () => {
       chatSocket.off('newMessage');
+      chatSocket.off('receiveCall');
+      chatSocket.off('callResponse');
     };
-  }, [chatSocket]);
+  }, [chatSocket, friends]);
 
   useEffect(() => {
     if (!isLoggedIn || isActive) return;
@@ -158,10 +198,7 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
     },
   );
 
-  const presenceBaseUrl =
-    Platform.OS === 'android'
-      ? 'http://10.0.2.2:6000'
-      : 'http://localhost:6000';
+  const presenceBaseUrl = `http://${IP_ADDRESS ?? '10.0.2.2'}:6000`;
 
   const presenceSocket = useMemo(
     () =>
@@ -222,6 +259,16 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
     });
   };
 
+  const respondToCall = (response: CallResponse) => {
+    if (!callDetails) return;
+
+    if (response === CallResponse.Accepted) {
+      chatSocket.emit('acceptCall', callDetails.friendId);
+    } else {
+      chatSocket.emit('declineCall', callDetails.friendId);
+    }
+  };
+
   return (
     <FriendsContext.Provider
       value={{
@@ -230,9 +277,15 @@ export const FriendsProvider = ({children}: {children: ReactNode}) => {
         isLoading,
         conversations,
         messages,
+        callDetails,
+        callActivity,
         sendMessage: (text, conversationId) =>
           sendMessageHandler(text, conversationId),
         setFriend,
+        setCallDetails,
+        setCallActivity,
+        startCall,
+        respondToCall,
       }}>
       {children}
     </FriendsContext.Provider>

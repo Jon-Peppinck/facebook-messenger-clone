@@ -1,12 +1,11 @@
-import {Platform} from 'react-native';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, {InternalAxiosRequestConfig} from 'axios';
 
+import {IP_ADDRESS} from '@env';
+
 import {Credentials} from './auth/models';
 
-export const baseUrl =
-  Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
+export const baseUrl = `http://${IP_ADDRESS ?? '10.0.2.2'}:4000`;
 
 const _retrieveConfigCredentials = async (
   config: InternalAxiosRequestConfig<any>,
@@ -28,7 +27,8 @@ const _retrieveConfigCredentials = async (
 const getConfigWithHeaders = async (
   config: InternalAxiosRequestConfig<any>,
 ) => {
-  config.headers['Content-Type'] = 'application/json';
+  config.headers['content-type'] = 'application/json';
+  // config.headers['Content-Type'] = 'application/json';
   return _retrieveConfigCredentials(config);
 };
 

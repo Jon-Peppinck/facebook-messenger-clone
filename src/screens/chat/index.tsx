@@ -13,11 +13,20 @@ import {
   COLOR_WHITE,
 } from '../../shared/constants/colors';
 import {FriendsContext} from '../../shared/friends/contexts/friends.context';
+import {CallActivity} from '../../shared/friends/models';
+import {createMeeting} from '../call/requests';
 
 const ChatScreen = () => {
   const {userDetails} = useContext(AuthContext);
-  const {messages, conversations, friend, sendMessage} =
-    useContext(FriendsContext);
+  const {
+    messages,
+    conversations,
+    friend,
+    sendMessage,
+    setCallActivity,
+    setCallDetails,
+    startCall,
+  } = useContext(FriendsContext);
   const {friendId} = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState('');
@@ -62,13 +71,27 @@ const ChatScreen = () => {
             style={{margin: 0}}
             size={24}
             onPress={() => console.log('Call')}
+            accessibilityLabelledBy={undefined}
+            accessibilityLanguage={undefined}
           />
           <IconButton
             icon="video"
             iconColor={COLOR_FB_PRIMARY}
             style={{margin: 0}}
             size={24}
-            onPress={() => console.log('Video Call')}
+            onPress={async () => {
+              setCallActivity(CallActivity.Requesting);
+              const meetingId = await createMeeting().catch(e =>
+                console.log(e),
+              );
+              if (!meetingId) return;
+              const details = {meetingId, friendId: friend.id};
+              setCallDetails(details);
+              startCall(details);
+              navigate(`/call/${meetingId}`);
+            }}
+            accessibilityLabelledBy={undefined}
+            accessibilityLanguage={undefined}
           />
         </View>
       </Appbar.Header>
@@ -124,6 +147,8 @@ const ChatScreen = () => {
             sendMessage(text, conversationId);
             setText(() => '');
           }}
+          accessibilityLabelledBy={undefined}
+          accessibilityLanguage={undefined}
         />
       </View>
     </View>

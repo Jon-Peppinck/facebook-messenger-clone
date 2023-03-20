@@ -2,10 +2,14 @@ import {AppRegistry, Platform} from 'react-native';
 
 import PushNotification from 'react-native-push-notification';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
+import {register} from '@videosdk.live/react-native-sdk';
 
 import App from './App';
 import {name as appName} from './app.json';
 
+// if (Platform.OS === 'android') {
+register();
+// }
 AppRegistry.registerComponent(appName, () => App);
 
 PushNotification.configure({
